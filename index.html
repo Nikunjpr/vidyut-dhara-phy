@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>विद्युत धारा - इंटरैक्टिव क्विज़</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        body{font-family:'Poppins',sans-serif;background-color:#f0f4f8;color:#333;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;padding:20px}
+        .quiz-container{background-color:#fff;border-radius:15px;box-shadow:0 10px 25px rgba(0,0,0,.1);width:100%;max-width:800px;overflow:hidden}
+        .quiz-header{background-color:#4a90e2;color:#fff;padding:20px;text-align:center}
+        #quiz-selection-screen, #setup-screen, #quiz-screen, #results-screen{padding:30px}
+        h2{margin-top:0;font-size:1.5em}
+        .question-text{font-size:1.2em;font-weight:600;margin-bottom:20px;line-height:1.6}
+        ul.options{list-style-type:none;padding:0;margin:0}
+        ul.options li{background-color:#eaf2fa;border:2px solid #d1e0ee;border-radius:8px;padding:15px;margin-bottom:10px;cursor:pointer;transition:all .3s ease}
+        ul.options li:hover:not(.disabled){background-color:#d1e0ee;border-color:#4a90e2}
+        ul.options li.correct{background-color:#d4edda;border-color:#c3e6cb;color:#155724;font-weight:700}
+        ul.options li.incorrect{background-color:#f8d7da;border-color:#f5c6cb;color:#721c24;font-weight:700}
+        ul.options li.disabled{pointer-events:none;opacity:.7}
+        .button-container{display:flex;justify-content:space-between;margin-top:30px}
+        button{background-color:#4a90e2;color:#fff;border:none;border-radius:8px;padding:12px 25px;font-size:1em;font-weight:600;cursor:pointer;transition:background-color .3s ease}
+        button:hover:not(:disabled){background-color:#357abd}
+        button:disabled{background-color:#ccc;cursor:not-allowed}
+        #prev-btn, #back-to-selection-btn{background-color:#6c757d}
+        #prev-btn:hover:not(:disabled), #back-to-selection-btn:hover:not(:disabled){background-color:#5a6268}
+        #submit-btn{background-color:#28a745}
+        #submit-btn:hover{background-color:#218838}
+        #restart-btn{background-color:#ffc107;color:#212529}
+        #restart-btn:hover{background-color:#e0a800}
+        .timer{font-size:1.5em;font-weight:700;color:#4a90e2;text-align:right;margin-bottom:15px}
+        .progress-bar-container{width:100%;background-color:#e9ecef;border-radius:5px;margin-bottom:20px}
+        .progress-bar{width:0%;height:10px;background-color:#4a90e2;border-radius:5px;transition:width .5s ease}
+        #results-screen .score{font-size:1.8em;font-weight:700;margin:20px 0;text-align:center}
+        #results-screen .stars{font-size:2.5em;color:#ffc107;text-align:center;margin-bottom:20px}
+        #review-container{margin-top:30px;max-height:400px;overflow-y:auto;border-top:1px solid #ddd;padding-top:20px}
+        .review-question{margin-bottom:20px;padding:15px;border-radius:8px;background:#f8f9fa}
+        .review-question p{font-weight:700}
+        .review-question .user-answer.correct{color:#155724}
+        .review-question .user-answer.incorrect{color:#721c24}
+        .review-question .correct-answer{color:#28a745}
+        .hidden{display:none}
+        #timer-setup select, #timer-setup button{padding:10px;font-size:1em;margin:10px;border-radius:5px}
+        .selection-button{display:block;width:100%;padding:20px;margin-bottom:15px;font-size:1.2em;text-align:left}
+    </style>
+</head>
+<body>
+
+    <div class="quiz-container">
+        <!-- Screen 1: Quiz Part Selection -->
+        <div id="quiz-selection-screen">
+            <div class="quiz-header"><h1>विद्युत धारा क्विज़</h1></div>
+            <div style="padding: 30px; text-align: center;">
+                <h2>कृपया क्विज़ का एक भाग चुनें</h2>
+                <div id="quiz-parts-container"></div>
+            </div>
+        </div>
+
+        <!-- Screen 2: Timer Setup -->
+        <div id="setup-screen" class="hidden">
+            <div class="quiz-header"><h1 id="setup-header-title"></h1></div>
+            <div style="text-align:center; padding: 30px;">
+                <h2>प्रत्येक प्रश्न के लिए एक समय सीमा चुनें:</h2>
+                <div id="timer-setup">
+                    <select id="time-select">
+                        <option value="15">15 सेकंड</option>
+                        <option value="20" selected>20 सेकंड</option>
+                        <option value="25">25 सेकंड</option>
+                        <option value="30">30 सेकंड</option>
+                        <option value="9999">कोई समय सीमा नहीं</option>
+                    </select>
+                </div>
+                <div class="button-container" style="padding: 20px 0;">
+                    <button id="back-to-selection-btn">वापस</button>
+                    <button id="start-btn">क्विज़ शुरू करें</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 3: The Quiz -->
+        <div id="quiz-screen" class="hidden">
+            <div class="quiz-header">
+                <p id="question-counter"></p>
+                <div class="progress-bar-container"><div class="progress-bar"></div></div>
+            </div>
+            <div style="padding: 30px;">
+                <div class="timer" id="timer"></div>
+                <div id="question-area"><h2 class="question-text"></h2><ul class="options"></ul></div>
+                <div class="button-container">
+                    <button id="prev-btn">पिछला</button>
+                    <button id="skip-btn">छोड़ें</button>
+                    <button id="submit-btn" class="hidden">सबमिट करें</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 4: Results -->
+        <div id="results-screen" class="hidden">
+            <h2>क्विज़ समाप्त!</h2>
+            <div class="stars" id="star-rating"></div>
+            <div class="score" id="score-text"></div>
+            <div class="score" id="score-percentage"></div>
+            <div id="review-container"><h3>अपने उत्तरों की समीक्षा करें</h3></div>
+            <div class="button-container" style="justify-content: center;">
+                <button id="restart-btn">दूसरे भाग को हल करें</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const allQuestions = [
+            // भाग 1: प्रश्न 1-30
+            { question: "1. स्थिर विद्युत में आवेश-", options: ["विरामावस्था में रहते हैं", "गति की अवस्था में रहते हैं", "दोनों अवस्था में रहते हैं", "किसी भी अवस्था में नहीं रहते हैं"], answer: 0 },
+            { question: "2. धारा विद्युत में आवेश रहते हैं-", options: ["विरामावस्था में", "गति की अवस्था में", "किसी भी अवस्था में रह सकते हैं", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "3. विद्युत धारा का S.I. मात्रक है-", options: ["वोल्ट", "कुलॉम", "वाट", "एम्पियर"], answer: 3 },
+            { question: "4. सेल बाहरी परिपथ में जिस प्लेट से धारा भेजती है, उसे सेल को कहते हैं-", options: ["धन-ध्रुव", "ऋण-ध्रुव", "दोनों", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "5. विद्युत प्रवाह की दिशा मानी जाती है-", options: ["ऋण टर्मिनल से धन टर्मिनल की ओर", "धन टर्मिनल से ऋण टर्मिनल की ओर", "किसी भी दिशा में", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "6. एकांक समय में विद्युत आवेश के परिमाण के प्रवाह को क्या कहा जाता है?", options: ["विद्युत विभव", "विद्युत प्रतिरोध", "विद्युत धारा", "इनमें से कोई नहीं"], answer: 2 },
+            { question: "7. किसी तार से विद्युत धारा प्रवाहित होती है तो तार के प्रत्येक बिन्दु से कितना इलेक्ट्रॉन अपवाहित होती है?", options: ["1.6 × 10^19", "4.32 × 10^27", "6 × 10^18", "इनमें से कोई नहीं"], answer: 2 },
+            { question: "8. किसी विद्युत लैंप के तंतु के 0.4A की धारा प्रवाहित हो रही है। अगर लैम्प तीन घंटे तक प्रकाश देता है तो प्रवाहित आवेश है-", options: ["4320 कूलॉम", "1.6 × 10^19 कूलॉम", "1.6 × 10^19 कूलॉम", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "9. किसी विद्युत बल्ब के तंतु में से 0.5A विद्युत धारा 10 मिनट तक प्रवाहित होती है। विद्युत परिपथ से प्रवाहित विद्युत आवेश का परिमाण है-", options: ["300C", "60C", "120C", "200C"], answer: 0 },
+            { question: "10. विद्युत चुम्बक बनाने के लिए उपयुक्त पदार्थ है-", options: ["नरम लोहा", "इस्पात", "निकेल", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "11. किसी विद्युत धारा के सतत तथा बंद पथ को क्या कहते हैं?", options: ["विद्युत परिपथ", "विद्युत धारा पथ", "विद्युत विभव पथ", "विद्युतशक्ति पथ"], answer: 0 },
+            { question: "12. विद्युत धारा की चाल, प्रकाश की चाल में क्या सम्बन्ध है?", options: ["दोनों की चाल समान है", "विद्युत धारा की चाल प्रकाश की चाल से अधिक है", "प्रकाश की चाल विद्युत धारा की चाल से अधिक है", "सभी कथन सत्य है"], answer: 0 },
+            { question: "13. विद्युत धारा उत्पन्न करने की युक्ति को कहते हैं-", options: ["जनित्र", "गैल्वेनोमीटर", "ऐमीटर", "मीटर"], answer: 0 },
+            { question: "14. वह विद्युत धारा जो तार की प्रति मीटर लंबाई के लिए 2 × 10^(-7)N बल उत्पन्न करती है वह धारा-", options: ["1 एम्पियर", "2 एम्पियर", "3 ऐम्पियर", "10 ऐम्पियर"], answer: 0 },
+            { question: "15. आमीटर को विद्युत परिपथ में कैसे जोड़ा जाता है?", options: ["श्रेणीक्रम", "पाशर्वबद्ध", "(क) और (ख) दोनों", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "16. सेल का वि० वा० बल –", options: ["उसके भीतर विभव का वितरण है", "उससे संबद्ध एक अभिकर्त्ता है", "उसकी उर्जा है", "भीतर आयनों का घनत्व है"], answer: 1 },
+            { question: "17. धातुओं में धारावाहक होते हैं-", options: ["प्रोटॉन", "मुक्त इलेक्ट्रॉन", "कोर इलेक्ट्रॉन", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "18. एक बल्ब से मिनट में 120 कूलम्ब आवेश प्रवाहित हो रहा है, तो विद्युत धारा का मान ज्ञात करें।", options: ["1 एम्पियर", "2 एम्पियर", "3 एम्पियर", "4 एम्पियर"], answer: 1 },
+            { question: "19. जब किसी चालक तार से विद्युत धारा प्रवाहित होती है तो गतिशील कण होते हैं-", options: ["परमाणु", "आयन", "प्रोटॉन", "इलेक्ट्रॉन"], answer: 3 },
+            { question: "20. रेशम द्वारा रगड़ने पर काँच की छड़ में उत्पन्न आवेश है-", options: ["ऋण आवेश", "धन आवेश", "(क) और (ख) दोनों", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "21. उन द्वारा एबोनाइट के छड़ को रगड़ने पर एबोनाइट की छड़ पर उत्पन्न होता है-", options: ["ऋण आवेश", "धन आवेश", "कोई आवेश नहीं", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "22. दो आवेशित वस्तुओं पर लगने वाले बल पर कौन-सा नियम लागू होता है?", options: ["फैराडे नियम", "एम्पियर नियम", "कूलॉम नियम", "ओम नियम"], answer: 2 },
+            { question: "23. अगर दो आवेश q₁(1) और q₂(2) एक दूसरे से r दूरी पर स्थित है तो कूलॉम के नियम से उत्पन्न बल होगा-", options: ["F = kq₁(q₂)/r²", "F = q₁(q₂)/r²", "F= -q₁(q₂)/r", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "24. कूलॉम के नियम से k को क्या कहा जाता है?", options: ["एक स्थिरांक", "समानुनपातिकता स्थिरांक", "(क) और (ख) दोनों", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "25. दो सदृश आवेशों के बीच किस प्रकार का बल लगता है?", options: ["आकर्षण बल", "कोई बल नहीं", "प्रतिकर्षण बल", "इनमें से कोई नहीं"], answer: 2 },
+            { question: "26. विजातीय आवेशों के बीच किस प्रकार का बल लगता है?", options: ["आकर्षण बल", "प्रतिकर्षण बल", "गुरूत्व बल", "चुम्बकीय बल"], answer: 0 },
+            { question: "27. दो पिण्डों को आपस में रगड़ने पर दोनों पिण्ड समान धन और ऋण आवेश से आवेशित होते हैं। इसे कहा जाता है-", options: ["उर्जा संरक्षण का नियम", "आवेश संरक्षण का नियम", "संहति संरक्षण का नियम", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "28. क्या प्रोटॉन आवेशन प्रक्रम में भाग लेता है?", options: ["नहीं", "हाँ", "(क) और (ख) दोनों", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "29. रासायनिक उर्जा का कुछ भाग खर्च होता है-", options: ["यांत्रिक उर्जा में", "नाभिकीय उर्जा में", "गतिज उर्जा में", "सौर उर्जा में"], answer: 0 },
+            { question: "30. किसी चालक की किसी भी अनुप्रस्थ काट से समय t में नेट आवेश Q प्रवाहित होता है तो प्रवाहित विद्युत धारा I का मान होता है-", options: ["Q = I/t", "I = Qt", "I = Q/t", "t = Qt"], answer: 2 },
+            
+            // भाग 2: प्रश्न 31-60
+            { question: "31. खनिज अम्लों के जलीय विलयन विद्युत के चालक होते हैं, अतः इन्हें कहा जाता है-", options: ["विद्युत अपघट्य", "चालक", "अचालक", "विद्युत अपघटन"], answer: 0 },
+            { question: "32. लेड सल्फ्यूरिक अम्ल सेल का उपयोग होता है-", options: ["ऑटोमोबाइल", "औद्योगिक कार्यों में", "(क) एवं (ख) दोनों", "कोई नहीं"], answer: 2 },
+            { question: "33. दो वस्तुओं के आपस में रगड़ने पर जो इलेक्ट्रॉन का त्याग करता है वह हो जाता है-", options: ["ऋणावेशित", "धनावेशित", "कोई आवेशित नहीं होता है", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "34. जो वस्तु रगड़ने पर इलेक्ट्रॉन ग्रहण करता है वह हो जाता है-", options: ["धनावेशित", "ऋणावेशित", "किसी पर कोई आवेश नहीं", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "35. जो पदार्थ घर्षण द्वारा आसानी से आवेशित हो जाते हैं, वे कहलाते हैं-", options: ["विद्युत चालक", "विद्युतरोधी", "(क) एवं (ख) दोनों", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "36. किसी स्त्रोत से सतत धारा उत्पन्न करने की सरल युक्ति है-", options: ["वोल्टीय सेल", "सुखा सेल", "संचायक सेल", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "37. आमीटर से निम्नलिखित में किसे मापा जाता है?", options: ["धारा", "आवेश", "विभव", "विद्युत शक्ति"], answer: 0 },
+            { question: "38. निम्नांकित में से कौन उपकरण विद्युत धारा की उपस्थित दर्शाता है?", options: ["गैल्वेनोमीटर", "मोटर", "जेनरेटर", "वोल्टमीटर"], answer: 0 },
+            { question: "39. ऐम्पियर-घंटा मात्रक है", options: ["शक्ति का", "आवेश का", "उर्जा का", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "40. उर्जा का S.I. मात्रक होता है-", options: ["कैलोरी", "जूल", "ताप", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "41. आवेश का मात्रक है-", options: ["कूलॉम", "वोल्ट", "एम्पियर", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "42. 1 वोल्ट कहलाता है-", options: ["1 जूल/सेकण्ड", "1 जूल/कूलॉम", "1 जूल/एम्पियर", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "43. विभवान्तर मापने वाले यंत्र को कहा जाता है-", options: ["आमीटर", "वोल्टमीटर", "गैल्वेनोमीटर", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "44. 1 eV(Electron volt) बराबर होता है-", options: ["1.6 × 10⁻¹⁹ J", "1.6 × 10⁻³⁰ J", "1.6 × 10²⁷ J", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "45. चालक में इलेक्ट्रॉन तभी गमन कर सकता है जब चालक के अनुदिश-", options: ["विद्युत दाब में कोई अंतर नहीं होता है", "विद्युत दाब में अंतर होता है", "विद्युत दाब सभी स्थानों पर समान होता है", "विद्युत दाब का कोई महत्व नहीं है"], answer: 1 },
+            { question: "46. अगर Q आवेश विभवांतर V से प्रवाहित हो तो किया गया कार्य होगा-", options: ["V/Q", "Q/V", "V.Q", "V-Q"], answer: 2 },
+            { question: "47. जिन पदार्थो में विद्युत मुक्त रूप से प्रवाहित हो सकती है, उन्हें कहते हैं-", options: ["अर्द्धविद्युत चालक", "विद्युत रोधी", "विद्युत चालक", "इनमें से कोई नहीं"], answer: 2 },
+            { question: "48. जिन पदार्थों से विद्युत प्रवाह आसानी से नहीं होता है, उसे कहते हैं-", options: ["विद्युतरोधी", "विद्युत चालक", "(क) एवं (ख) दोनों", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "49. किसी विद्युत-परिपथ में इकाई धन-आवेश को एक बिंदु से दूसरे बिंदु तक ले जाने में किये कार्य को मापा जाता है, उन बिंदुओं के बीच-", options: ["की धारा से", "के विभवांतर से", "के प्रतिरोध से", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "50. जब सेल से कोई विद्युत धारा नहीं ली जाए तो उनके दोनों टर्मिनलों के बीच विभवांतर-", options: ["शून्य होता है", "शून्य नहीं होता है", "दोनों टर्मिनल पर प्रर्याप्त समान विभव होता है", "सभी कथन सत्य है"], answer: 1 },
+            { question: "51. जब कोई सेल परिपथ (circuit) से जुड़ा नहीं है, तब उनके ध्रुवों के बीच 1.5 V का विभवांतर है। सेल का विद्युत वाहक बल होगा-", options: ["1.5 V", "1 V", "0.5 V", "3 V"], answer: 0 },
+            { question: "52. परिपथ में किन्हीं दो बिंदुओं के बीच का विभवांतर मापा जाता है-", options: ["आमीटर से", "वोल्टमीटर से", "डायनेमो से", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "53. निम्न में से किसका अर्थ जल होता है?", options: ["पेट्रो", "टरबो", "नाइट्रो", "हाइड्रो"], answer: 3 },
+            { question: "54. विभवांतर किसमें गति प्रदान करने का काम करता है?", options: ["प्रोटॉन में", "इलेक्ट्रॉन में", "न्यूट्रॉन में", "धारा में"], answer: 1 },
+            { question: "55. सेल के भीतर होने वाली रासायनिक अभिक्रिया सेल के दो टर्मिनलों के बीच उत्पन्न करता है-", options: ["विभवांतर", "आवेश", "धारा", "प्रोटॉन"], answer: 0 },
+            { question: "56. यदि किसी प्राथमिक सेल का पूर्णतः उपयोग कर लिया गया हो तो उसे दोबारा आवेशित करना संभव है या नहीं ?", options: ["हाँ", "नहीं", "(क) और (ख) दोनों", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "57. संचायक बैटरियों को पुनः आवेशित करना संभव है या नहीं-", options: ["नहीं", "हाँ", "(क) एवं (ख) दोनों", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "58. विभवान्तर का S.I. मात्रक होता है", options: ["कूलम्ब", "वोल्ट", "एम्पियर", "ओम"], answer: 1 },
+            { question: "59. शुष्क सेल में ऋण इलेक्ट्रोड किस धातु का होता है?", options: ["कार्बन का", "जस्ता का", "तांबा का", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "60. शुष्क सेल में धन इलेक्ट्रोड किस धातु का होता है?", options: ["कॉपर का", "जस्ता का", "कार्बन का", "लोहे का"], answer: 2 },
+            
+            // भाग 3: प्रश्न 61-90
+            { question: "61. अर्द्धचालक का ताप बढ़ने पर उसका प्रतिरोध-", options: ["बढ़ता है", "घटता है", "अपरिवर्तनीय रहता है", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "62. यदि चाँदी के तार का ताप बढ़ाया जाय, तो उसका प्रतिरोध-", options: ["बढ़ेगा", "घटेगा", "अपरिवर्तित रहेगा", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "63. किस उपकरण में धन(+) और ऋण(-) का चिन्ह नहीं होता है?", options: ["एमीटर में", "वोल्टमीटर में", "कुंडली में", "विद्युत सेल में"], answer: 2 },
+            { question: "64. बैटरी से किस प्रकार की धारा प्राप्त होती है?", options: ["प्रत्यावर्ती धारा", "दिष्ट धारा", "(क) और (ख) दोनों", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "65. निम्न में से कौन-सा संबंध सत्य है?", options: ["V = 1/R", "R = R/1", "V = IR", "V = (IR)²"], answer: 2 },
+            { question: "66. प्रतिरोध का S.I. मात्रक क्या है?", options: ["जूल", "वोल्ट", "ओम", "एम्पियर"], answer: 2 },
+            { question: "67. किसी कुण्डली का प्रतिरोध ज्ञात करने का सूत्र है-", options: ["R = V × I", "R = V/I", "R = I/V", "R = V – I"], answer: 1 },
+            { question: "68. किसी विद्युत परिपथ में परिपथ के प्रतिरोध को परिवर्तित करने के लिए किस युक्ति का उपयोग किया जाता है?", options: ["धारा नियंत्रक", "परिवर्ती प्रतिरोध", "(क) एवं (ख) दोनों", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "69. ताप बढ़ने पर चालक का प्रतिरोध-", options: ["बढ़ता है", "घटता है", "बढ़ता घटता नहीं है", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "70. किसी चालक में प्रवाहित धारा के लिए ओम का नियम लागू होता है-", options: ["जब चालक का ताप अचर रहता है", "जब चालक का ताप चर रहता है", "जब चालक के सिरों के बीच विभवांतर अचर रहता है।", "जब चालक के सिरों के बीच विभवांतर चर रहता है।"], answer: 0 },
+            { question: "71. ओम के नियम में अचर राशि क्या है?", options: ["प्रतिरोध", "ताप", "धारा", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "72. ओम के नियम में विद्युत धारा विभवान्तर के बीच खींचा गया आलेख होता है-", options: ["सरल रेखा", "वक्र रेखा", "(क) एवं (ख) दोनों", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "73. स्त्रोत की वोल्टता में बिना कोई परिवर्तन किए परिपथ की विद्युत धारा को नियंत्रित करने के लिए उपयोग किए जाने वाले अवयव को क्या कहते हैं?", options: ["प्रतिरोध", "परिवर्ती प्रतिरोध", "कोई प्रतिरोध नहीं", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "74. वह अवयव जो उच्च प्रतिरोध लगाता है उसे कहते हैं-", options: ["अच्छा चालक", "मध्यम चालक", "हीन चालक", "इनमें से कोई नहीं"], answer: 2 },
+            { question: "75. वैद्युत प्रतिरोधकता का S.I. मात्रक है", options: ["ओम", "ओम/मीटर²", "वोल्ट/मीटर", "ओम-मीटर"], answer: 3 },
+            { question: "76. निम्नलिखित में से कौन विद्युत का सबसे अच्छा चालक है?", options: ["चाँदी", "लोहा", "नाइक्रोम", "रबर"], answer: 0 },
+            { question: "77. रिओस्टेट का उद्देश्य क्या है?", options: ["धारा का परिमाण में वृद्धि", "धारा का परिमाण में कमी", "धारा का परिमाण में वृद्धि या कमी", "इनमें से कोई नहीं"], answer: 2 },
+            { question: "78. वोल्टमीटर को विद्युत परिपथ में किस क्रम में जोड़ा जाता है?", options: ["श्रेणीक्रम", "समानांतर क्रम", "(क) और (ख) दोनों", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "79. बिजली के फ्यूज (Fuse) का तार बना होता है-", options: ["टिन का", "ताँबे का", "ताँबे और टिन दोनों का", "इनमें से कोई नहीं"], answer: 2 },
+            { question: "80. बल्ब के तंतुओं को बनाने में टंगस्टन का उपयोग क्यों किया जाता है?", options: ["क्योंकि इसका गलनांक 3380°C है", "क्योंकि यह निम्न ताप पर पिघलता है", "क्योंकि इसका गलनांक 100°C-200°C के बीच है", "क्योंकि इसका गलनांक 3000°C है।"], answer: 0 },
+            { question: "81. किसी चालक का प्रतिरोध निर्भर करता है-", options: ["चालक की लम्बाई पर", "चालक के अनुप्रस्थ काट के क्षेत्रफल पर", "चालक की प्रकृति पर", "उपर्युक्त सभी पर"], answer: 3 },
+            { question: "82. धातुओं तथा मिश्रधातुओं की प्रतिरोधकता बहुत कम होती है जिसका परिसर है-", options: ["10⁻⁸ Ωm से 10⁻⁶ Ωm", "10⁻² Ωm से 10⁻³ Ωm", "10⁸ Ωm से 10⁶ Ωm", "10⁴ Ωm से 10¹⁰ Ωm"], answer: 0 },
+            { question: "83. लम्बाई बढ़ने से तार का प्रतिरोध-", options: ["बढ़ता है", "घटता है", "कोई परिवर्तन नहीं होता है", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "84. 20°C पर सिल्वर का विद्युत प्रतिरोधकता है-", options: ["6.84 × 10⁻⁸ Ωm", "10¹² Ωm", "49 × 10⁻⁶ Ωm", "1.60 × 10⁻⁸ Ωm"], answer: 3 },
+            { question: "85. शुष्क कागज की प्रतिरोधकता है-", options: ["10¹⁴ Ωm", "10¹⁵ Ωm", "10¹² Ωm", "इनमें से कोई नहीं"], answer: 2 },
+            { question: "86. प्रतिरोध किसी पदार्थ का ऐसा गुण धर्म है जो चालक में किसके प्रवाह में अवरोध उत्पन्न करता है?", options: ["इलेक्ट्रॉनों के", "प्रोट्रॉनों के", "(क) और (ख) दोनों", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "87. इलेक्ट्रिक हीटर की कुंडली बनाने में किस पदार्थ का प्रयोग किया जाता है?", options: ["ताँबा", "लोहा", "चाँदी", "नाइक्रोम"], answer: 3 },
+            { question: "88. अगर तीन चालक R₁, R₂ और R₃ श्रेणीक़त में संयोजित हैं तो उसका समतुल्य प्रतिरोध Rₛ होगा-", options: ["Rₛ = R₁+ R₂ + R₃", "Rₛ = 1/R₁ + 1/R₂ + 1/R₃", "1/Rₛ = R₁+ R₂ + R₃", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "89. अगर तीन प्रतिरोध R₁, R₂ और R₃ पार्श्ववद्ध संयोजित हैं तो इनका समतुल्य प्रतिरोध R होगा-", options: ["R = R₁+ R₂ + R₃", "1/R = R₁+ R₂ + R₃", "1/R = 1/R₁ + 1/R₂ + 1/R₃", "इनमें से कोई नहीं"], answer: 2 },
+            { question: "90. समांतरक्रम में संयोजित 10 प्रतिरोध का जिनमें प्रत्येक का मान 10 ओम है, समतुल्य प्रतिरोध होता है-", options: ["10Ω", "100Ω", "1Ω", "20Ω"], answer: 2 },
+            
+            // भाग 4: प्रश्न 91-120
+            { question: "91. यदि R₁ तथा R₂ दो प्रतिरोध समान्तर श्रेणी में जुड़े हैं, तो समतुल्य प्रतिरोध होगा-", options: ["R₁ से अधिक", "R₂ से अधिक", "प्रत्येक से कम", "इनमें से कोई नहीं"], answer: 2 },
+            { question: "92. यदि चार समान प्रतिरोध को श्रेणीक्रम में जोड़ा जाता है, तो उनका मुल्य प्रतिरोध 20 ओम होता है, प्रत्येक प्रतिरोध होगा-", options: ["5 ओम", "10 ओम", "2.5 ओम", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "93. यदि पाँच समान प्रतिरोध को समांमरक्रम में जोड़ने पर उनका तुल्य प्रतिरोध 10 ओम हो, तो प्रत्येक प्रतिरोध होगा-", options: ["50 ओम", "25 ओम", "100 ओम", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "94. 10Ω एवं 20Ω के दो प्रतिरोधों को श्रेणीक्रम में जोड़ने पर समतुल्य प्रतिरोध होगा-", options: ["20Ω", "20/3Ω", "30Ω", "10Ω"], answer: 2 },
+            { question: "95. श्रेणीक्रम में संयोजित समान मान के चार प्रतिरोधों के समूह का तुल्य प्रतिरोध 16 Ω है। प्रत्येक प्रतिरोध का मान है-", options: ["1 Ω", "2 Ω", "3 Ω", "4 Ω"], answer: 3 },
+            { question: "96. प्रतिरोध R के किसी तार के टुकड़े को पाँच बराबर भागों में काटा जाता है। इन टुकड़ों को फिर पार्श्वक्रम में संयोजित कर देते हैं। यदि संयोजन का तुल्य प्रतिरोध R' है तो R/R' अनुपात का मान क्या है-", options: ["1/25", "1/5", "5", "25"], answer: 3 },
+            { question: "97. 20Ω, 5Ω तथा 4Ω के प्रतिरोध समान्तर क्रम में जोड़े जाएँ तो संयुक्त प्रतिरोध होगा :", options: ["<4Ω", "29Ω", ">29Ω", "इनमें से कोई नहीं"], answer: 0 }, // Assuming less than the smallest, which is a property of parallel resistors. Let's calculate: 1/R = 1/20+1/5+1/4 = (1+4+5)/20 = 10/20 = 1/2. R=2. So <4 is correct.
+            { question: "98. समांतर क्रम में संयोजित प्रतिरोधों की संख्या घटने के उपरांत संयोजित प्रतिरोधों का कुल प्रतिरोध", options: ["बढ़ता है", "घटता है", "अपरिवर्तित रहता है", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "99. दो चालक तार जिनके पदार्थ, लम्बाई तथा व्यास समान हैं किसी विद्युत परिपथ में पहले श्रेणी क्रम में और फिर पार्श्वक्रम में संयोजन में उत्पन्न प्रतिरोधों का अनुपात क्या है?", options: ["1:2", "2:1", "1:4", "4:1"], answer: 3 },
+            { question: "100. आमीटर का प्रतिरोध होता है", options: ["छोटा", "बड़ा", "बहुत छोटा", "इनमें से कोई नहीं"], answer: 2 },
+            { question: "101. निम्न में से कौन-सा पद विद्युत परिपथ में विद्युत शक्ति को निरूपित करता है?", options: ["I²R", "IR²", "V²I", "VI²"], answer: 0 },
+            { question: "102. किसी स्थाई विद्युत धारा I द्वारा समय t में उत्पन्न उष्मा की मात्रा क्या है यदि उष्मा H है-", options: ["H = Vt", "H = VIt", "H = VI/t", "H = Vt/I"], answer: 1 },
+            { question: "103. विद्युत प्रवाहित कर किसी धातु की वस्तु पर अन्य किसी वांछित धातु की परत निक्षेपित करने के प्रक्रम को कहते हैं-", options: ["विद्युत लेपन", "विद्युत अपघटन", "(क) तथा (ख) दोनों", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "104. विद्युत बल्ब के भीतर निष्क्रिय गैसें भरी जाती हैं-", options: ["रोशनी तेजी करने के लिए", "टंगस्टन के वाष्पन को रोकने के लिए", "बल्ब की सुरक्षा के लिए", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "105. विद्युत बल्ब का फिलामेंट होता है-", options: ["टंगस्टन का", "ताँबा का", "प्लेटिनम का", "इनमें से कोई नहीं"], answer: 0 },
+            { question: "106. विद्युत धारा के तापीय प्रभाव का उपयोग किसमें नहीं होता है?", options: ["विद्युत हीटर", "विद्युत इस्तरी", "विद्युत बल्ब", "विद्युत पंखा"], answer: 3 },
+            { question: "107. एक विद्युत बल्ब पर rating है 220V – 100W। इसके फिलामेण्ट (तंतु) का प्रतिरोध होगा-", options: ["220 Ω", "100 Ω", "484 Ω", "इनमें से कोई नहीं"], answer: 2 },
+            { question: "108. किसी प्रतिरोध में क्षयित अथवा उपभुक्त उर्जा व्यक्त किया जाता है-", options: ["W = VI", "W = V × I × T", "W = VT", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "109. 6V बैटरी से गुजरने वाले हर एक कूलॉम आवेश को कितनी उर्जा दी जा सकती है?", options: ["12J", "6J", "1J", "5J"], answer: 1 },
+            { question: "110. इलेक्ट्रॉन पर आवेश होता है-", options: ["1.6 × 10²⁰ कूलंब", "1.6 × 10²⁷ कूलंब", "-1.6 × 10⁻¹⁹ कूलंब", "इनमें से कोई नहीं"], answer: 2 },
+            { question: "111. अगर बैटरी से केवल प्रतिरोधकों के एक समूह ही संयोजित है तो स्त्रोत की उर्जा निरंतर पूर्ण रूप से किस उर्जा में परिवर्तित होगा?", options: ["प्रकाश उर्जा में", "तापीय उर्जा में", "यांत्रिक उर्जा में", "गतिज उर्जा में"], answer: 1 },
+            { question: "112. यदि किसी चालक से एक कूलॉम आवेश प्रवाहित होने में एक जूल कार्य हो, तो उस पर चालक के सिरों के बीच विभवांतर होगा :", options: ["1 वोल्ट", "2 वोल्ट", "3 वोल्ट", "4 वोल्ट"], answer: 0 },
+            { question: "113. 100 W का विद्युत बल्ब 250 V के विद्युत मेन से जोड़ा जाता है। बल्ब से प्रवाहित धारा का मान होगा-", options: ["0.1 एम्पियर", "0.4 एम्पियर", "2.5 एम्पियर", "10 एम्पियर"], answer: 1 },
+            { question: "114. अगर प्रतिरोधक का प्रतिरोध R हो और परिपथ में t सेकेण्ड तक I विद्युत धारा प्रवाहित होती हो तो ताप H को व्यक्त किया जाता है-", options: ["H = IRt", "H = (I²R)/t", "H = I²Rt", "H = RT/I²"], answer: 2 },
+            { question: "115. परिपथ में कितने अनुमतांक का फ्यूज उपयोग किया जाता है, जबकि 220 V पर 1 kW का विद्युत उपभुक्त होती है-", options: ["1 A", "3 A", "4 A", "5 A"], answer: 3 },
+            { question: "116. बल्ब की आयु में वृद्धि के लिए इसमें मुख्यत: कौन से गैस भरे जाते हैं?", options: ["H अथवा ऑक्सीजन", "नाइट्रोजन तथा आर्गन गैस", "हीलियम अथवा नियॉन गैस", "ऑक्सीजन और क्लोरीन गैस"], answer: 1 },
+            { question: "117. किसी चालक में उत्पन्न उष्मा अनुक्रमानुपाती है-", options: ["धारा के", "धारा के वर्ग के", "धारा के वर्गमूल के", "इनमें से कोई नहीं"], answer: 1 },
+            { question: "118. विद्युत शक्ति का S.I. मात्रक है-", options: ["वाट", "वोल्ट", "जूल/सेकेण्ड", "जूल/घंटा"], answer: 0 },
+            { question: "119. 1 किलो-वाट-घंटा का व्यावहारिक मात्रक क्या है?", options: ["यूनिट", "वाट", "वाट-घंटा", "जूल/घंटा"], answer: 0 },
+            { question: "120. 1 जूल का मान होता है-", options: ["4.18 कैलोरी", "0.24 कैलोरी", "0.42 कैलोरी", "इनमें से कोई नहीं"], answer: 1 },
+
+            // भाग 5: प्रश्न 121-135
+            { question: "121. 1 वाट निम्नलिखित में से किसके तुल्य है?", options: ["1 A/V", "1 V/A", "1 VA", "1 V-A"], answer: 2 },
+            { question: "122. 1 mA = कितना होता है?", options: ["10⁻³ A", "10⁻² A", "10⁻¹ A", "10⁻¹¹ A"], answer: 0 },
+            { question: "123. 1 µA = कितना है?", options: ["10⁻⁵ A", "10⁻⁴ A", "10⁻³ A", "10⁻⁶ A"], answer: 3 },
+            { question: "124. कोई विद्युत बल्ब 220V के जनित्र से संयोजित है। यदि बल्ब से 0.50A विद्युत धारा प्रवाहित होती है तो बल्ब की शक्ति होगी-", options: ["100W", "120W", "105W", "110W"], answer: 3 },
+            { question: "125. निम्नलिखित में से कौन सा पद विद्युत परिपथ में विद्युत शक्ति को निरूपित नहीं करता है-", options: ["I²R", "IR²", "VI", "V²/R"], answer: 1 },
+            { question: "126. 12V विभवान्तर के दो बिन्दुओं के बीच 2C आवेश को ले जाने में कितना कार्य होगा?", options: ["24J", "20J", "36J", "23J"], answer: 0 },
+            { question: "127. 1kW के विद्युत हीटर को 220V के स्त्रोत से जोड़ने पर कितनी धारा प्रवाहित होगी?", options: ["5.45 एम्पियर", "54.5 एम्पियर", "45.5 एम्पियर", "4.55 एम्पियर"], answer: 3 },
+            { question: "128. 2kW हीटर में कितनी विद्युत धारा का प्रवाह होगा जब से 100 वोल्ट के स्त्रोत से जोड़ा गया है :", options: ["1A", "10A", "20A", "40A"], answer: 2 },
+            { question: "129. किसी विद्युत बल्ब का अनुमतांक 220V-100W है जब इसे 110V पर प्रचालित करते हैं तब इसके द्वारा उपयुक्त शक्ति कितनी होती है?", options: ["100W", "75W", "50W", "25W"], answer: 3 },
+            { question: "130. किसी विद्युत बल्ब का अनुमतांक 220V-120 W है जब उसे 110 वोल्ट पर प्रचालित करते हैं तब इसके द्वारा उपयुक्त शक्ति कितनी होती है?", options: ["100 वाट", "75 वाट", "60 वाट", "30 वाट"], answer: 3 }, // P' = P * (V'/V)^2 = 120 * (110/220)^2 = 120 * (1/2)^2 = 120/4 = 30W. Answer is घ.
+            { question: "131. किसी विद्युत स्त्रोत द्वारा परिपथ में निवेशित शक्ति का मान क्या होगा जब Q आवेश V विभवांतर पर t सेकेण्ड तक प्रवाहित होता है-", options: ["VI", "VQ", "Q/V xt", "V/(Q xt)"], answer: 0 },
+            { question: "132. जब 1A धारा, 1V विभवांतर पर प्रवाहित होती है, तो उपयुक्त उर्जा क्या है?", options: ["1 वाट", "2 वाट", "8 वाट", "4 वाट"], answer: 0 },
+            { question: "133. 1 वाट घंटा कितने जूल के बराबर है?", options: ["3600 जूल", "36000 जूल", "360000 जूल", "3600000 जूल"], answer: 0 },
+            { question: "134. 1 HP बराबर है", options: ["746 वाट", "760 वाट", "780 वाट", "550 वाट"], answer: 0 },
+            { question: "135. निम्नलिखित में कौन-सा मात्रक वाट (W) के बराबर है?", options: ["J/S", "J.S", "S/J", "इनमें से कोई नहीं"], answer: 0 }
+        ];
+
+        // Global variables
+        const quizSelectionScreen = document.getElementById('quiz-selection-screen');
+        const setupScreen = document.getElementById('setup-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        const quizPartsContainer = document.getElementById('quiz-parts-container');
+        const backToSelectionBtn = document.getElementById('back-to-selection-btn');
+        const startBtn = document.getElementById('start-btn');
+        const timeSelect = document.getElementById('time-select');
+        const setupHeaderTitle = document.getElementById('setup-header-title');
+
+        let selectedQuizData = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let userAnswers = [];
+        let timer;
+        let timePerQuestion;
+        
+        const questionCounter = document.getElementById('question-counter');
+        const progressBar = document.querySelector('.progress-bar');
+        const timerEl = document.getElementById('timer');
+        const questionText = document.querySelector('.question-text');
+        const optionsList = document.querySelector('.options');
+        const prevBtn = document.getElementById('prev-btn');
+        const skipBtn = document.getElementById('skip-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const scoreText = document.getElementById('score-text');
+        const scorePercentage = document.getElementById('score-percentage');
+        const starRating = document.getElementById('star-rating');
+        const reviewContainer = document.getElementById('review-container');
+        const restartBtn = document.getElementById('restart-btn');
+        const correctSound = new Audio("data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        const incorrectSound = new Audio("data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        
+        function generateQuizSelection() {
+            quizPartsContainer.innerHTML = '';
+            const partSize = 30;
+            const numParts = Math.ceil(allQuestions.length / partSize);
+
+            for (let i = 0; i < numParts; i++) {
+                const start = i * partSize;
+                const end = Math.min(start + partSize, allQuestions.length);
+                const button = document.createElement('button');
+                button.innerText = `भाग ${i + 1} (प्रश्न ${start + 1} - ${end})`;
+                button.className = 'selection-button';
+                button.addEventListener('click', () => selectQuizPart(start, end, i + 1));
+                quizPartsContainer.appendChild(button);
+            }
+        }
+
+        function selectQuizPart(start, end, partNumber) {
+            selectedQuizData = allQuestions.slice(start, end);
+            quizSelectionScreen.classList.add('hidden');
+            setupScreen.classList.remove('hidden');
+            setupHeaderTitle.innerText = `भाग ${partNumber} के लिए सेटिंग्स`;
+        }
+
+        function startQuiz() {
+            timePerQuestion = parseInt(timeSelect.value);
+            setupScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            currentQuestionIndex = 0;
+            score = 0;
+            userAnswers = new Array(selectedQuizData.length).fill(null);
+            showQuestion();
+        }
+
+        function showQuestion() {
+            resetState();
+            if (currentQuestionIndex >= selectedQuizData.length) {
+                showResults();
+                return;
+            }
+
+            const question = selectedQuizData[currentQuestionIndex];
+            questionCounter.innerText = `प्रश्न ${currentQuestionIndex + 1} / ${selectedQuizData.length}`;
+            progressBar.style.width = `${((currentQuestionIndex) / selectedQuizData.length) * 100}%`;
+            questionText.innerText = question.question;
+
+            question.options.forEach((option, index) => {
+                const li = document.createElement('li');
+                li.innerText = option;
+                li.dataset.index = index;
+                li.addEventListener('click', selectAnswer);
+                optionsList.appendChild(li);
+            });
+            
+            if(userAnswers[currentQuestionIndex] !== null) {
+                showPreviousAnswer();
+            } else {
+                 startTimer();
+            }
+
+            prevBtn.disabled = currentQuestionIndex === 0;
+            skipBtn.innerText = "छोड़ें";
+            
+            if(currentQuestionIndex === selectedQuizData.length - 1) {
+                skipBtn.classList.add('hidden');
+                submitBtn.classList.remove('hidden');
+            } else {
+                skipBtn.classList.remove('hidden');
+                submitBtn.classList.add('hidden');
+            }
+        }
+        
+        function selectAnswer(e) {
+            clearInterval(timer);
+            const selectedOption = e.target;
+            const selectedIndex = parseInt(selectedOption.dataset.index);
+            
+            if (userAnswers[currentQuestionIndex] === null) {
+                userAnswers[currentQuestionIndex] = selectedIndex;
+                const correctIndex = selectedQuizData[currentQuestionIndex].answer;
+                if (selectedIndex === correctIndex) {
+                    score++;
+                    selectedOption.classList.add('correct');
+                } else {
+                    selectedOption.classList.add('incorrect');
+                    optionsList.children[correctIndex].classList.add('correct');
+                }
+                playSound(selectedIndex === correctIndex ? correctSound : incorrectSound);
+            }
+            
+            Array.from(optionsList.children).forEach(li => li.classList.add('disabled'));
+            skipBtn.innerText = "अगला";
+        }
+        
+        function showResults() {
+            quizScreen.classList.add('hidden');
+            resultsScreen.classList.remove('hidden');
+            progressBar.style.width = '100%';
+            
+            const percentage = selectedQuizData.length > 0 ? ((score / selectedQuizData.length) * 100).toFixed(1) : 0;
+            scoreText.innerText = `आपका स्कोर: ${score} / ${selectedQuizData.length}`;
+            scorePercentage.innerText = `कुल प्रतिशत: ${percentage}%`;
+
+            let stars = '';
+            const starCount = Math.round(percentage / 20);
+            for(let i=0; i<5; i++){ stars += i < starCount ? '★' : '☆'; }
+            starRating.innerHTML = stars;
+            
+            reviewContainer.innerHTML = '<h3>अपने उत्तरों की समीक्षा करें</h3>';
+            selectedQuizData.forEach((q, index) => {
+                const reviewDiv = document.createElement('div');
+                reviewDiv.className = 'review-question';
+                const userAnswerIndex = userAnswers[index];
+                let userAnswerText = (userAnswerIndex !== null)
+                    ? `<span class="user-answer ${userAnswerIndex === q.answer ? 'correct' : 'incorrect'}">आपका उत्तर: ${q.options[userAnswerIndex]}</span>`
+                    : `<span class="user-answer incorrect">आपने उत्तर नहीं दिया</span>`;
+                
+                reviewDiv.innerHTML = `<p>${q.question}</p>${userAnswerText}<br><span class="correct-answer">सही उत्तर: ${q.options[q.answer]}</span>`;
+                reviewContainer.appendChild(reviewDiv);
+            });
+        }
+        
+        function resetToMainMenu() {
+            resultsScreen.classList.add('hidden');
+            quizSelectionScreen.classList.remove('hidden');
+        }
+        
+        function playSound(sound){try{sound.currentTime=0;sound.play()}catch(e){console.error("Sound play failed:",e)}}
+        function resetState(){clearTimeout(timer);while(optionsList.firstChild){optionsList.removeChild(optionsList.firstChild)}}
+        function startTimer(){let timeLeft=timePerQuestion;timerEl.innerText=`${timeLeft}s`;if(timePerQuestion>9e3){timerEl.innerText="∞";return}timer=setInterval(()=>{timeLeft--;timerEl.innerText=`${timeLeft}s`;if(timeLeft<=0){clearInterval(timer);handleNext()}},1e3)}
+        function showPreviousAnswer(){const correctIndex=selectedQuizData[currentQuestionIndex].answer,userAnswerIndex=userAnswers[currentQuestionIndex];if(userAnswerIndex===correctIndex)optionsList.children[userAnswerIndex].classList.add('correct');else{if(optionsList.children[userAnswerIndex])optionsList.children[userAnswerIndex].classList.add('incorrect');if(optionsList.children[correctIndex])optionsList.children[correctIndex].classList.add('correct')}Array.from(optionsList.children).forEach(li=>li.classList.add('disabled'));skipBtn.innerText="अगला";timerEl.innerText="Locked"}
+        function handleNext(){currentQuestionIndex++;showQuestion()}
+        function handlePrev(){currentQuestionIndex--;showQuestion()}
+
+        window.onload = generateQuizSelection;
+        
+        startBtn.addEventListener('click', startQuiz);
+        skipBtn.addEventListener('click', handleNext);
+        prevBtn.addEventListener('click', handlePrev);
+        submitBtn.addEventListener('click', showResults);
+        restartBtn.addEventListener('click', resetToMainMenu);
+        backToSelectionBtn.addEventListener('click', () => {
+            setupScreen.classList.add('hidden');
+            quizSelectionScreen.classList.remove('hidden');
+        });
+
+    </script>
+</body>
+</html>
